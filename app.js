@@ -9,7 +9,7 @@ var mkdirp = require('mkdirp');
  * express-fileupload를 이용한 파일업로드
  */
 
-let fileUploadPath = "/home/ifile/html/";
+let fileUploadPath = "/home/html/";
 
 app.set('views', __dirname + '/');
 app.engine('html', require('ejs').renderFile);
