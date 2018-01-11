@@ -31,16 +31,17 @@ app.get('/', function (req, res) {
 });
 
 app.post('/', function(req, res) {
+    //console.log(req);
     var resultJson = "";
     if (!req.files) {
-	resultJson = '{ "code" : -1, "message": "업로드할 파일이 없습니다.", "result" : {}';
+	resultJson = '{ "code" : -1, "message": "업로드할 파일이 없습니다.", "result" : {}}';
         return res.send(resultJson);
     }
 
     let uploadFile = req.files.file;
     let fileName = req.files.file.name;
     var detailUploadPath = (req.body.detailUploadPath == "" ? "" : req.body.detailUploadPath+"/");
-    var uploadFilename = (req.body.uploadFilename == "" ? "" : req.body.uploadFilename);
+    var uploadFilename = (req.body.uploadFilename == "" ? "" : req.body.uploadFilename)+getFileExt(fileName);
     var fullUploadPath = fileUploadPath+detailUploadPath;
 
     if (!fs.existsSync(fullUploadPath)) {
@@ -50,11 +51,11 @@ app.post('/', function(req, res) {
 
     uploadFile.mv(fullUploadPath+(uploadFilename == "" ? fileName:uploadFilename), function(err) {
         if(err) {
-		resultJson = '{ "code" : -1, "message": "'+err+'", "result" : {}';
+		resultJson = '{ "code" : -1, "message": "'+err+'", "result" : {}}';
         	return res.send(resultJson);
 	}
 	console.log("==파일업로드가 완료되었습니다.");
-	resultJson = '{ "code" : 0, "message": "성공", "result" : {"originFilename": "'+fileName+'","uploadFilename": "'+(uploadFilename == "" ? fileName:uploadFilename)+'" }';
+	resultJson = '{ "code" : 0, "message": "성공", "result" : {"originFilename": "'+fileName+'","uploadFilename": "'+(uploadFilename == "" ? fileName:uploadFilename)+'" }}';
         return res.send(resultJson);        
     });
 });
@@ -64,20 +65,6 @@ app.listen(3001, function () {
 });
 
 
-/**
- * 디렉토리 생성
- * @param dir
- * @param mode
- */
-function mkdir(dir, mode){
-    try{
-        fs.mkdirSync(dir, mode);
-    }
-    catch(e){
-        if(e.errno === 34){
-            mkdir(path.dirname(dir), mode);
-            mkdir(dir, mode);
-        }
-    }
+function getFileExt(_filename) {
+	return (_filename.split(".").length > 1 ? "."+_filename.split(".")[1] : "");
 }
-
