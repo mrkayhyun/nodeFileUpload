@@ -1,9 +1,9 @@
 var express = require('express');
 var fileUpload = require('express-fileupload');
 var app = express();
-var cors = require('cors')();
 var fs = require('fs');
 var path = require('path');
+var mkdirp = require('mkdirp');
 
 /**
  * express-fileupload를 이용한 파일업로드
@@ -16,36 +16,68 @@ app.engine('html', require('ejs').renderFile);
 app.set('view engine', 'html');
 
 app.use(fileUpload({
-    limits: { fileSize: 1 * 1024 * 1024 },
-    cors
+    limits: { fileSize: 1 * 1024 * 1024 }
 }));
+
+//크로스 도메인 대비 설정
+app.all('/*', function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  next();
+});
 
 app.get('/', function (req, res) {
     res.render("upload.html");
 });
 
 app.post('/', function(req, res) {
+    var resultJson = "";
     if (!req.files) {
-        return res.status(400).send('No files were uploaded.');
+	resultJson = '{ "code" : -1, "message": "업로드할 파일이 없습니다.", "result" : {}';
+        return res.send(resultJson);
     }
 
     let uploadFile = req.files.file;
     let fileName = req.files.file.name;
-    var detailUploadPath = (req.param('detailUploadPath') == "" ? "" : req.param('detailUploadPath')+"/");
+    var detailUploadPath = (req.body.detailUploadPath == "" ? "" : req.body.detailUploadPath+"/");
+    var uploadFilename = (req.body.uploadFilename == "" ? "" : req.body.uploadFilename);
+    var fullUploadPath = fileUploadPath+detailUploadPath;
 
-    if (!fs.existsSync(fileUploadPath+detailUploadPath)) {
-        mkdir(fileUploadPath, '0666');
+    if (!fs.existsSync(fullUploadPath)) {
+	mkdirp(fullUploadPath, function(err) {});
+	console.log("==해당 폴더가 없어서 생성 하였습니다.");
     }
 
-    uploadFile.mv(fileUploadPath+detailUploadPath+fileName, function(err) {
-        if (err) {
-		return "error";
+    uploadFile.mv(fullUploadPath+(uploadFilename == "" ? fileName:uploadFilename), function(err) {
+        if(err) {
+		resultJson = '{ "code" : -1, "message": "'+err+'", "result" : {}';
+        	return res.send(resultJson);
 	}
-        //return res.status(500).send(err);
-        res.send(fileName);
+	console.log("==파일업로드가 완료되었습니다.");
+	resultJson = '{ "code" : 0, "message": "성공", "result" : {"originFilename": "'+fileName+'","uploadFilename": "'+(uploadFilename == "" ? fileName:uploadFilename)+'" }';
+        return res.send(resultJson);        
     });
 });
 
 app.listen(3001, function () {
     console.log('==파일업로드 서버가 기동 되었습니다.(포트 3001)');
 });
+
+
+/**
+ * 디렉토리 생성
+ * @param dir
+ * @param mode
+ */
+function mkdir(dir, mode){
+    try{
+        fs.mkdirSync(dir, mode);
+    }
+    catch(e){
+        if(e.errno === 34){
+            mkdir(path.dirname(dir), mode);
+            mkdir(dir, mode);
+        }
+    }
+}
+
