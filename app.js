@@ -36,6 +36,9 @@ app.post('/', function(req, res) {
     if (!req.files) {
 	resultJson = '{ "code" : -1, "message": "업로드할 파일이 없습니다.", "result" : {}}';
         return res.send(resultJson);
+    } else if(!req.files.file){
+	resultJson = '{ "code" : -1, "message": "업로드할 파일이 없습니다.", "result" : {}}';
+        return res.send(resultJson);
     }
 
     let uploadFile = req.files.file;
